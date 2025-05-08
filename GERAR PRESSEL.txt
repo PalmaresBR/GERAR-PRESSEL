@@ -1,0 +1,166 @@
+<pressel-generator></pressel-generator>
+
+<script type="module">
+class PresselGenerator extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  connectedCallback() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host { display: block; font-family: 'Segoe UI', sans-serif; max-width:600px; margin:20px auto; }
+        .card { background:#fff; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); padding:20px; display:flex; flex-direction:column; gap:16px; }
+        .form-row { display:flex; gap:8px; }
+        input { flex:1; padding:10px 12px; font-size:15px; border:1px solid #ccc; border-radius:4px; }
+        input:focus { outline:none; border-color:#007bff; box-shadow:0 0 0 2px rgba(0,123,255,0.2); }
+        button { padding:8px 16px; font-size:15px; border:none; border-radius:4px; background:#007bff; color:#fff; cursor:pointer; transition:background .2s; }
+        button:hover { background:#0056b3; }
+        textarea { width:96%; height:300px; font-family:monospace; font-size:14px; padding:12px; border:1px solid #ddd; border-radius:4px; resize:vertical; }
+        .actions { display:flex; gap:8px; align-items:center; }
+        .msg { color:green; font-size:14px; opacity:0; transition:opacity .3s; }
+        .msg.show { opacity:1; }
+      </style>
+      <div class="card">
+        <div class="form-row">
+          <input id="urlInput" type="text" placeholder="Digite seu link de afiliado aqui!" />
+          <button id="generatePressel">Gerar Pressel</button>
+        </div>
+        <textarea id="outputCode" style="display:none;"></textarea>
+        <div class="actions" style="display:none;">
+          <button id="copyCode">Copiar Código</button>
+          <button id="clearCode">Limpar</button>
+          <span id="copyMsg" class="msg">Copiado!</span>
+        </div>
+      </div>
+    `;
+    this.shadowRoot.getElementById('generatePressel')
+      .addEventListener('click', () => this._generate());
+    this.shadowRoot.getElementById('copyCode')
+      .addEventListener('click', () => this._copy());
+    this.shadowRoot.getElementById('clearCode')
+      .addEventListener('click', () => this._clear());
+  }
+
+  _generate() {
+    const inp = this.shadowRoot.getElementById('urlInput');
+    let url   = inp.value.trim();
+    try {
+      const u = new URL(url);
+      if (!['http:','https:'].includes(u.protocol)) throw 0;
+      url = u.href;
+    } catch {
+      inp.focus();
+      return alert('URL inválida. Use o formato https://exemplo.com');
+    }
+
+    // Gerador de Pressel
+    const imgB64 = 'aHR0cHM6Ly9wZXRpY2FvZGlyZWl0by5jb20uYnIvd3AtY29udGVudC91cGxvYWRzLzIwMjUvMDUvU2NyZWVuc2hvdC5wbmc=';
+
+    const code = `
+<!DOCTYPE html>
+<html lang="pt-BR" translate="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google" content="notranslate">
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #fff;
+    }
+    /*Gerador de Pressel*/
+    .cookie-banner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      max-width: 500px;
+      background-color: rgba(255,255,255,0.95);
+      text-align: center;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 9999;
+    }
+    .cookie-banner button {
+      background-color: #007bff;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .cookie-banner a {
+      color: #007bff;
+      text-decoration: underline;
+    }
+  </style>
+  <script>
+    (function(){
+      // Gerador de Pressel
+      const u = atob('${imgB64}');
+      document.addEventListener('DOMContentLoaded', function(){
+        document.body.style.background = "url('" + u + "') no-repeat center center";
+        document.body.style.backgroundSize = 'cover';
+      });
+    })();
+  </scr${'ipt'}>
+</head>
+<body translate="no">
+  <div class="cookie-banner">
+    <p>
+      Este site usa cookies para personalizar conteúdo e anúncios, fornecer recursos de mídia social e analisar nosso tráfego. Ao clicar em Aceitar, você concorda com o uso de cookies. Para mais informações, por favor visite nossa <a href="${url}" target="_blank">Política de Cookies</a>.
+    </p>
+    <button onclick="this.closest('.cookie-banner').style.display='none'; location.href='${url}'">
+      Aceitar
+    </button>
+    <button onclick="this.closest('.cookie-banner').style.display='none'; location.href='${url}'">
+      Fechar
+    </button>
+  </div>
+</body>
+</html>
+`.trim();
+
+    const tx  = this.shadowRoot.getElementById('outputCode');
+    const act = this.shadowRoot.querySelector('.actions');
+    tx.value          = code;
+    tx.style.display  = 'block';
+    act.style.display = 'flex';
+  }
+
+  _copy() {
+    const tx = this.shadowRoot.getElementById('outputCode');
+    navigator.clipboard.writeText(tx.value)
+      .then(() => {
+        const msg = this.shadowRoot.getElementById('copyMsg');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 1500);
+      })
+      .catch(() => alert('Não foi possível copiar.'));
+  }
+
+  _clear() {
+    const inp = this.shadowRoot.getElementById('urlInput');
+    const tx  = this.shadowRoot.getElementById('outputCode');
+    const act = this.shadowRoot.querySelector('.actions');
+    inp.value = '';
+    tx.value  = '';
+    tx.style.display  = 'none';
+    act.style.display = 'none';
+    inp.focus();
+  }
+}
+
+customElements.define('pressel-generator', PresselGenerator);
+</script>
+
